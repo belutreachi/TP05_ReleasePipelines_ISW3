@@ -100,4 +100,35 @@ describe('TaskService', () => {
     expect(remainingTasks).toHaveLength(1);
     expect(remainingTasks[0].userId).toBe('user-2');
   });
+
+  it('crea una tarea con dueDate cuando se proporciona', () => {
+    const service = new TaskService();
+    const dueDate = '2024-12-31T23:59:59.000Z';
+    const task = service.create({
+      title: 'Tarea con fecha límite',
+      description: 'Debe completarse antes de fin de año',
+      userId: 'user-123',
+      dueDate
+    });
+
+    expect(task).toEqual(
+      expect.objectContaining({
+        title: 'Tarea con fecha límite',
+        description: 'Debe completarse antes de fin de año',
+        userId: 'user-123',
+        dueDate,
+        completed: false
+      })
+    );
+  });
+
+  it('crea una tarea sin dueDate cuando no se proporciona', () => {
+    const service = new TaskService();
+    const task = service.create({
+      title: 'Tarea sin fecha límite',
+      userId: 'user-123'
+    });
+
+    expect(task.dueDate).toBeNull();
+  });
 });

@@ -153,4 +153,38 @@ describe('API de tareas', () => {
       .set('x-session-id', userSessionId);
     expect(getResponse.status).toBe(404);
   });
+
+  it('crea una tarea con dueDate', async () => {
+    const dueDate = '2024-12-31T23:59:59.000Z';
+    const response = await request(app)
+      .post('/api/tasks')
+      .set('x-session-id', userSessionId)
+      .send({ title: 'Tarea con fecha límite', dueDate });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.dueDate).toBe(dueDate);
+  });
+
+  it('admin ve el nombre del creador de las tareas', async () => {
+    // User creates a task
+    const taskResponse = await request(app)
+      .post('/api/tasks')
+      .set('x-session-id', userSessionId)
+      .send({ title: 'Tarea de usuario regular' });
+
+    // Admin lists all tasks
+    const listResponse = await request(app)
+      .get('/api/tasks')
+      .set('x-session-id', adminSessionId);
+
+    expect(listResponse.status).toBe(200);
+    
+    // Find the task created by user
+    const userTask = listResponse.body.data.find(
+      task => task.id === taskResponse.body.data.id
+    );
+    
+    expect(userTask).toBeDefined();
+    expect(userTask.creatorName).toBe('Usuario Demo');
+  });
 });
