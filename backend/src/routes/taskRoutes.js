@@ -22,7 +22,23 @@ router.get('/', (req, res) => {
   const { isAdmin, userId } = req.session;
   
   // Admin can see all tasks, regular users only see their own
-  const tasks = isAdmin ? taskService.list() : taskService.list(userId);
+  let tasks = isAdmin ? taskService.list() : taskService.list(userId);
+  
+  // Enrich tasks with creator names for admin users
+  if (isAdmin) {
+    const userService = req.app.get('userService');
+    tasks = tasks.map(task => {
+      if (task.userId) {
+        try {
+          const user = userService.findById(task.userId);
+          return { ...task, creatorName: user.name };
+        } catch (error) {
+          return task;
+        }
+      }
+      return task;
+    });
+  }
   
   res.json({ data: tasks });
 });
@@ -30,12 +46,23 @@ router.get('/', (req, res) => {
 // GET /api/tasks/:id - Obtener una tarea por ID
 router.get('/:id', (req, res) => {
   try {
-    const task = taskService.findById(req.params.id);
+    let task = taskService.findById(req.params.id);
     const { isAdmin, userId } = req.session;
     
     // Check authorization: user must own the task or be admin
     if (!isAdmin && task.userId !== userId) {
       return res.status(403).json({ error: 'No tienes permiso para ver esta tarea' });
+    }
+    
+    // Enrich task with creator name for admin users
+    if (isAdmin && task.userId) {
+      const userService = req.app.get('userService');
+      try {
+        const user = userService.findById(task.userId);
+        task = { ...task, creatorName: user.name };
+      } catch (error) {
+        // Ignore if user not found
+      }
     }
     
     res.json({ data: task });

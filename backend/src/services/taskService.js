@@ -20,7 +20,7 @@ class TaskService {
     return task;
   }
 
-  create({ title, description, userId }) {
+  create({ title, description, userId, dueDate }) {
     if (!title) {
       throw new Error('El título es obligatorio');
     }
@@ -30,6 +30,7 @@ class TaskService {
       title,
       description: description || '',
       userId: userId || null,
+      dueDate: dueDate || null,
       createdAt: new Date().toISOString(),
       completed: false
     };
