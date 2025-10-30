@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: tp05-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ci_tasks}
+      POSTGRES_USER: ${POSTGRES_USER:-ci_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ci_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ci_user} -d ${POSTGRES_DB:-ci_tasks}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tp05-backend
+    restart: unless-stopped
+    environment:
+      PORT: ${BACKEND_PORT:-4000}
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-ci_tasks}
+      DB_USER: ${POSTGRES_USER:-ci_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ci_password}
+    ports:
+      - "${BACKEND_PORT:-4000}:${BACKEND_PORT:-4000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src:ro
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tp05-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-4000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
