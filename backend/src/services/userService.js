@@ -26,8 +26,8 @@ class UserService {
       throw new Error('El nombre y email son obligatorios');
     }
 
-    // Validar formato de email básico
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validar formato de email básico (ReDoS-safe)
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       throw new Error('El formato del email no es válido');
     }
@@ -52,7 +52,7 @@ class UserService {
     const user = this.findById(userId);
 
     if (email && email !== user.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         throw new Error('El formato del email no es válido');
       }
