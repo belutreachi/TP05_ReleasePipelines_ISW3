@@ -77,21 +77,43 @@ Si prefieres ejecutar cada componente por separado:
 
 ## Funcionalidades
 
+### Autenticación y Autorización
+
+La aplicación ahora requiere autenticación para acceder al gestor de tareas:
+
+**Usuarios de prueba:**
+- Usuario regular: `demo@example.com` / `demo123`
+- Administrador: `admin@example.com` / `admin123`
+
+**Características:**
+- Los usuarios deben iniciar sesión o registrarse antes de acceder a las tareas
+- Los usuarios regulares solo pueden ver y gestionar sus propias tareas
+- Los administradores pueden ver todas las tareas de todos los usuarios
+- Función de cerrar sesión disponible
+
 ### API Backend
+
+#### Autenticación
+- `POST /api/auth/login` - Iniciar sesión (requiere `email` y `password`)
+- `POST /api/auth/register` - Registrar nuevo usuario (requiere `name`, `email` y `password`)
+- `POST /api/auth/logout` - Cerrar sesión (requiere header `x-session-id`)
+- `GET /api/auth/session` - Validar sesión actual (requiere header `x-session-id`)
 
 #### Usuarios
 - `GET /api/users` - Listar todos los usuarios
 - `GET /api/users/:id` - Obtener un usuario específico
-- `POST /api/users` - Crear un nuevo usuario (requiere `name` y `email`)
+- `POST /api/users` - Crear un nuevo usuario (requiere `name`, `email` y `password`)
 - `PUT /api/users/:id` - Actualizar un usuario
 - `DELETE /api/users/:id` - Eliminar un usuario
 
-#### Tareas
-- `GET /api/tasks` - Listar tareas (opcionalmente filtrar con `?userId=xxx`)
+#### Tareas (requieren autenticación)
+- `GET /api/tasks` - Listar tareas del usuario autenticado (admin ve todas)
 - `GET /api/tasks/:id` - Obtener una tarea específica
-- `POST /api/tasks` - Crear una tarea (`title` requerido, `description` y `userId` opcionales)
+- `POST /api/tasks` - Crear una tarea (`title` requerido, `description` opcional)
 - `POST /api/tasks/:id/toggle` - Alternar estado de completado
 - `DELETE /api/tasks/:id` - Eliminar una tarea
+
+**Nota:** Todas las rutas de tareas requieren el header `x-session-id` con un ID de sesión válido.
 
 #### Health Check
 - `GET /api/health` - Verificar el estado de la API
