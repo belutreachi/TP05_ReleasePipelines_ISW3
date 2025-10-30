@@ -2,7 +2,6 @@ node_modules
 npm-debug.log
 .env
 coverage
-.vite
 *.test.js
 tests
 .eslintrc.cjs

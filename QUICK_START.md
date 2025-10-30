@@ -1,5 +1,10 @@
 # Guía de Inicio Rápido - TP05 Release Pipelines IS3
 
+## Requisitos
+
+- Docker y Docker Compose v2.0+
+- (Opcional) Node.js 18+ y npm 9+ para desarrollo local sin Docker
+
 ## 🚀 Inicio más rápido (Recomendado)
 
 Ejecuta toda la aplicación con un solo comando:

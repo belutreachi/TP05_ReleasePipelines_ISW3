@@ -9,4 +9,3 @@ dist
 tests
 .eslintrc.cjs
 vitest.setup.js
-vite.config.js

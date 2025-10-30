@@ -108,6 +108,7 @@ Si prefieres ejecutar cada componente por separado:
 - Node.js 18+
 - npm 9+
 - Docker (para la base de datos y los contenedores)
+- Docker Compose v2.0+ (viene incluido con Docker Desktop)
 
 ## Pruebas
 
