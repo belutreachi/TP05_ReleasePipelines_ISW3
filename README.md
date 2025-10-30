@@ -13,6 +13,89 @@ TP05_ReleasePipelines_IS3/
 
 Cada subcarpeta cuenta con su propio `README.md` describiendo los scripts disponibles y consideraciones específicas.
 
+## 🚀 Inicio Rápido
+
+### Opción 1: Usando Docker Compose (Recomendado)
+
+La forma más rápida de ejecutar toda la aplicación:
+
+```bash
+./start.sh
+```
+
+O manualmente:
+
+```bash
+# Copiar archivo de configuración (si no existe)
+cp .env.example .env
+
+# Levantar todos los servicios
+docker compose up --build
+```
+
+Esto iniciará:
+- **Base de datos PostgreSQL** en `localhost:5432`
+- **Backend API** en `http://localhost:4000`
+- **Frontend** en `http://localhost:5173`
+
+Para detener todos los servicios:
+
+```bash
+docker compose down
+```
+
+### Opción 2: Desarrollo Local
+
+Si prefieres ejecutar cada componente por separado:
+
+1. **Instalar dependencias** en `frontend/` y `backend/`:
+   ```bash
+   cd backend && npm install
+   cd ../frontend && npm install
+   ```
+
+2. **Iniciar la base de datos** (desde el directorio raíz):
+   ```bash
+   cd database
+   cp .env.example .env
+   docker compose up -d
+   ```
+
+3. **Ejecutar el backend** en una terminal:
+   ```bash
+   cd backend
+   npm run dev
+   ```
+
+4. **Ejecutar el frontend** en otra terminal:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+5. **Abrir** `http://localhost:5173` para interactuar con la aplicación.
+
+## Funcionalidades
+
+### API Backend
+
+#### Usuarios
+- `GET /api/users` - Listar todos los usuarios
+- `GET /api/users/:id` - Obtener un usuario específico
+- `POST /api/users` - Crear un nuevo usuario (requiere `name` y `email`)
+- `PUT /api/users/:id` - Actualizar un usuario
+- `DELETE /api/users/:id` - Eliminar un usuario
+
+#### Tareas
+- `GET /api/tasks` - Listar tareas (opcionalmente filtrar con `?userId=xxx`)
+- `GET /api/tasks/:id` - Obtener una tarea específica
+- `POST /api/tasks` - Crear una tarea (`title` requerido, `description` y `userId` opcionales)
+- `POST /api/tasks/:id/toggle` - Alternar estado de completado
+- `DELETE /api/tasks/:id` - Eliminar una tarea
+
+#### Health Check
+- `GET /api/health` - Verificar el estado de la API
+
 ## Próximos pasos sugeridos
 
 - Configurar pipelines de CI/CD en Azure DevOps que ejecuten las pruebas unitarias e integrales de ambos proyectos.
@@ -24,11 +107,35 @@ Cada subcarpeta cuenta con su propio `README.md` describiendo los scripts dispon
 
 - Node.js 18+
 - npm 9+
-- Docker (para la base de datos y los futuros contenedores)
+- Docker (para la base de datos y los contenedores)
+- Docker Compose v2.0+ (viene incluido con Docker Desktop)
 
-## Cómo empezar
+## Pruebas
 
-1. Instale dependencias en `frontend/` y `backend/` con `npm install`.
-2. Inicie la base de datos con Docker Compose dentro de `database/`.
-3. Ejecute `npm run dev` en `backend/` y `frontend/` en terminales separadas.
-4. Abra `http://localhost:5173` para interactuar con la aplicación.
+### Backend
+```bash
+cd backend
+npm test                 # Ejecutar todas las pruebas
+npm run test:watch       # Modo watch
+npm run test:coverage    # Reporte de cobertura
+npm run lint            # Análisis estático
+```
+
+### Frontend
+```bash
+cd frontend
+npm test                # Ejecutar pruebas
+npm run test:watch      # Modo watch
+npm run lint           # Análisis estático
+```
+
+## Variables de Entorno
+
+Consulte `.env.example` en la raíz del proyecto para las variables de configuración disponibles:
+
+- `POSTGRES_DB` - Nombre de la base de datos
+- `POSTGRES_USER` - Usuario de PostgreSQL
+- `POSTGRES_PASSWORD` - Contraseña de PostgreSQL
+- `BACKEND_PORT` - Puerto del backend (default: 4000)
+- `FRONTEND_PORT` - Puerto del frontend (default: 5173)
+- `NODE_ENV` - Entorno de ejecución (development/production)

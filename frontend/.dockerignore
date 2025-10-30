@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.env
+coverage
+.vite
+dist
+*.test.js
+*.test.jsx
+tests
+.eslintrc.cjs
+vitest.setup.js
