@@ -124,6 +124,7 @@ La aplicación ahora requiere autenticación para acceder al gestor de tareas:
 - Para producción, considera usar JWT tokens o sesiones persistentes
 - **SIEMPRE usa HTTPS en producción** para proteger las credenciales en tránsito
 - Implementa protección CSRF para endpoints de modificación de datos
+- **Implementa rate limiting** en rutas de autenticación para prevenir ataques de fuerza bruta (ej: express-rate-limit)
 
 #### Health Check
 - `GET /api/health` - Verificar el estado de la API

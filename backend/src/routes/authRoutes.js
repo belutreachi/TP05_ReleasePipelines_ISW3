@@ -7,6 +7,7 @@ const router = express.Router();
 const sessions = new Map();
 
 // POST /api/auth/login - Authenticate user
+// TODO: Add rate limiting in production to prevent brute force attacks
 router.post('/login', (req, res) => {
   try {
     const { email, password } = req.body || {};
