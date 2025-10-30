@@ -157,6 +157,26 @@ export default function App() {
     }
   };
 
+  const handleDelete = async (taskId) => {
+    try {
+      const response = await fetch(`${API_URL}/${taskId}`, { 
+        method: 'DELETE',
+        headers: {
+          'x-session-id': sessionId
+        }
+      });
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error || 'No se pudo eliminar la tarea');
+      }
+
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="app-container">
@@ -196,7 +216,7 @@ export default function App() {
       <main>
         <TaskForm onCreate={handleCreateTask} />
         {error && <p role="alert">{error}</p>}
-        <TaskList tasks={tasks} onToggle={handleToggle} isAdmin={user?.isAdmin} />
+        <TaskList tasks={tasks} onToggle={handleToggle} onDelete={handleDelete} isAdmin={user?.isAdmin} />
       </main>
     </div>
   );

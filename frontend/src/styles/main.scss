@@ -112,6 +112,29 @@ header {
   margin-top: 0.25rem;
 }
 
+.task-due-date {
+  display: block;
+  color: #fbbf24;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: column;
+}
+
+.delete-button {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.delete-button:hover {
+  background-color: #ef4444 !important;
+  color: #fff !important;
+}
+
 [role='alert'],
 .error-message {
   color: #f87171;

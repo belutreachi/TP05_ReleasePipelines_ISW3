@@ -3,6 +3,7 @@ import { useState } from 'react';
 export default function TaskForm({ onCreate }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -10,9 +11,20 @@ export default function TaskForm({ onCreate }) {
       return;
     }
 
-    onCreate({ title: title.trim(), description: description.trim() });
+    const taskData = { 
+      title: title.trim(), 
+      description: description.trim()
+    };
+    
+    // Only include dueDate if it's set
+    if (dueDate) {
+      taskData.dueDate = new Date(dueDate).toISOString();
+    }
+
+    onCreate(taskData);
     setTitle('');
     setDescription('');
+    setDueDate('');
   };
 
   return (
@@ -34,6 +46,15 @@ export default function TaskForm({ onCreate }) {
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         placeholder="Detalles opcionales"
+      />
+
+      <label htmlFor="dueDate">Fecha límite (opcional)</label>
+      <input
+        id="dueDate"
+        name="dueDate"
+        type="date"
+        value={dueDate}
+        onChange={(event) => setDueDate(event.target.value)}
       />
 
       <button type="submit">Agregar tarea</button>
