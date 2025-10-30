@@ -5,8 +5,9 @@ export default function TaskList({ tasks, onToggle, onDelete, isAdmin }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+    // Extract just the date part to avoid timezone shifts
+    const datePart = dateString.split('T')[0];
+    return datePart;
   };
 
   return (

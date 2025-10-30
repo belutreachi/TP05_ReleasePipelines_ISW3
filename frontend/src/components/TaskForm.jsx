@@ -17,8 +17,9 @@ export default function TaskForm({ onCreate }) {
     };
     
     // Only include dueDate if it's set
+    // Keep the date in YYYY-MM-DD format to avoid timezone issues
     if (dueDate) {
-      taskData.dueDate = new Date(dueDate).toISOString();
+      taskData.dueDate = dueDate + 'T00:00:00.000Z';
     }
 
     onCreate(taskData);
