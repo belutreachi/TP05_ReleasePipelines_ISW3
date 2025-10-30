@@ -53,6 +53,7 @@ router.post('/register', (req, res) => {
 
     // Create session for the new user
     const sessionId = randomUUID();
+    // eslint-disable-next-line no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
     
     sessions.set(sessionId, {
@@ -97,6 +98,7 @@ router.get('/session', (req, res) => {
   
   try {
     const user = userService.findById(session.userId);
+    // eslint-disable-next-line no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
     
     res.json({ data: { user: userWithoutPassword } });

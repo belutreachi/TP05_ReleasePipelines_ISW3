@@ -33,6 +33,7 @@ class UserService {
     }
 
     // Return user without password
+    // eslint-disable-next-line no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
