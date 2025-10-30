@@ -1,5 +1,6 @@
 const express = require('express');
 const TaskService = require('../services/taskService');
+const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 const taskService = new TaskService([
@@ -13,16 +14,30 @@ const taskService = new TaskService([
   }
 ]);
 
-// GET /api/tasks - Listar todas las tareas (opcionalmente filtradas por userId)
+// Protect all task routes
+router.use(requireAuth);
+
+// GET /api/tasks - Listar todas las tareas (filtradas por usuario o todas si es admin)
 router.get('/', (req, res) => {
-  const userId = req.query.userId;
-  res.json({ data: taskService.list(userId) });
+  const { isAdmin, userId } = req.session;
+  
+  // Admin can see all tasks, regular users only see their own
+  const tasks = isAdmin ? taskService.list() : taskService.list(userId);
+  
+  res.json({ data: tasks });
 });
 
 // GET /api/tasks/:id - Obtener una tarea por ID
 router.get('/:id', (req, res) => {
   try {
     const task = taskService.findById(req.params.id);
+    const { isAdmin, userId } = req.session;
+    
+    // Check authorization: user must own the task or be admin
+    if (!isAdmin && task.userId !== userId) {
+      return res.status(403).json({ error: 'No tienes permiso para ver esta tarea' });
+    }
+    
     res.json({ data: task });
   } catch (error) {
     res.status(404).json({ error: error.message });
@@ -32,7 +47,10 @@ router.get('/:id', (req, res) => {
 // POST /api/tasks - Crear una nueva tarea
 router.post('/', (req, res) => {
   try {
-    const task = taskService.create(req.body || {});
+    const { userId } = req.session;
+    const taskData = { ...req.body, userId };
+    
+    const task = taskService.create(taskData);
     res.status(201).json({ data: task });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -42,8 +60,16 @@ router.post('/', (req, res) => {
 // POST /api/tasks/:id/toggle - Alternar estado de completado
 router.post('/:id/toggle', (req, res) => {
   try {
-    const task = taskService.toggle(req.params.id);
-    res.json({ data: task });
+    const task = taskService.findById(req.params.id);
+    const { isAdmin, userId } = req.session;
+    
+    // Check authorization: user must own the task or be admin
+    if (!isAdmin && task.userId !== userId) {
+      return res.status(403).json({ error: 'No tienes permiso para modificar esta tarea' });
+    }
+    
+    const updatedTask = taskService.toggle(req.params.id);
+    res.json({ data: updatedTask });
   } catch (error) {
     res.status(404).json({ error: error.message });
   }
@@ -52,8 +78,16 @@ router.post('/:id/toggle', (req, res) => {
 // DELETE /api/tasks/:id - Eliminar una tarea
 router.delete('/:id', (req, res) => {
   try {
-    const task = taskService.delete(req.params.id);
-    res.json({ data: task });
+    const task = taskService.findById(req.params.id);
+    const { isAdmin, userId } = req.session;
+    
+    // Check authorization: user must own the task or be admin
+    if (!isAdmin && task.userId !== userId) {
+      return res.status(403).json({ error: 'No tienes permiso para eliminar esta tarea' });
+    }
+    
+    const deletedTask = taskService.delete(req.params.id);
+    res.json({ data: deletedTask });
   } catch (error) {
     res.status(404).json({ error: error.message });
   }

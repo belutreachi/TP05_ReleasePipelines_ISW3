@@ -40,7 +40,7 @@ describe('API de usuarios', () => {
     it('crea un nuevo usuario', async () => {
       const response = await request(app)
         .post('/api/users')
-        .send({ name: 'Nuevo Usuario', email: 'nuevo@example.com' });
+        .send({ name: 'Nuevo Usuario', email: 'nuevo@example.com', password: 'pass123' });
 
       expect(response.status).toBe(201);
       expect(response.body.data).toEqual(
@@ -53,23 +53,30 @@ describe('API de usuarios', () => {
     });
 
     it('devuelve 400 si falta el nombre', async () => {
-      const response = await request(app).post('/api/users').send({ email: 'test@example.com' });
+      const response = await request(app).post('/api/users').send({ email: 'test@example.com', password: 'pass123' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('El nombre y email son obligatorios');
     });
 
     it('devuelve 400 si falta el email', async () => {
-      const response = await request(app).post('/api/users').send({ name: 'Test User' });
+      const response = await request(app).post('/api/users').send({ name: 'Test User', password: 'pass123' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('El nombre y email son obligatorios');
     });
 
+    it('devuelve 400 si falta la contraseña', async () => {
+      const response = await request(app).post('/api/users').send({ name: 'Test User', email: 'test@example.com' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('La contraseña es obligatoria');
+    });
+
     it('devuelve 400 si el email no es válido', async () => {
       const response = await request(app)
         .post('/api/users')
-        .send({ name: 'Test User', email: 'invalid-email' });
+        .send({ name: 'Test User', email: 'invalid-email', password: 'pass123' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('El formato del email no es válido');
@@ -78,11 +85,11 @@ describe('API de usuarios', () => {
     it('devuelve 400 si el email ya está registrado', async () => {
       await request(app)
         .post('/api/users')
-        .send({ name: 'User 1', email: 'duplicate@example.com' });
+        .send({ name: 'User 1', email: 'duplicate@example.com', password: 'pass123' });
 
       const response = await request(app)
         .post('/api/users')
-        .send({ name: 'User 2', email: 'duplicate@example.com' });
+        .send({ name: 'User 2', email: 'duplicate@example.com', password: 'pass456' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('El email ya está registrado');
@@ -93,7 +100,7 @@ describe('API de usuarios', () => {
     it('actualiza un usuario existente', async () => {
       const createResponse = await request(app)
         .post('/api/users')
-        .send({ name: 'Original Name', email: 'original@example.com' });
+        .send({ name: 'Original Name', email: 'original@example.com', password: 'pass123' });
 
       const userId = createResponse.body.data.id;
 
@@ -120,7 +127,7 @@ describe('API de usuarios', () => {
     it('elimina un usuario existente', async () => {
       const createResponse = await request(app)
         .post('/api/users')
-        .send({ name: 'To Delete', email: 'delete@example.com' });
+        .send({ name: 'To Delete', email: 'delete@example.com', password: 'pass123' });
 
       const userId = createResponse.body.data.id;
 

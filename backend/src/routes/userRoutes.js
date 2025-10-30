@@ -7,6 +7,16 @@ const userService = new UserService([
     id: 'seed-user',
     name: 'Usuario Demo',
     email: 'demo@example.com',
+    password: 'demo123',
+    isAdmin: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'admin-user',
+    name: 'Administrador',
+    email: 'admin@example.com',
+    password: 'admin123',
+    isAdmin: true,
     createdAt: new Date().toISOString()
   }
 ]);
