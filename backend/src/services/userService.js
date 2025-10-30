@@ -21,9 +21,30 @@ class UserService {
     return this.users.find((u) => u.email === email);
   }
 
-  create({ name, email }) {
+  authenticate(email, password) {
+    const user = this.findByEmail(email);
+    if (!user) {
+      throw new Error('Credenciales inválidas');
+    }
+
+    // In production, use bcrypt.compare()
+    if (user.password !== password) {
+      throw new Error('Credenciales inválidas');
+    }
+
+    // Return user without password
+    // eslint-disable-next-line no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  create({ name, email, password, isAdmin = false }) {
     if (!name || !email) {
       throw new Error('El nombre y email son obligatorios');
+    }
+
+    if (!password) {
+      throw new Error('La contraseña es obligatoria');
     }
 
     // Validar formato de email básico (ReDoS-safe)
@@ -41,6 +62,8 @@ class UserService {
       id: randomUUID(),
       name,
       email,
+      password, // In production, this should be hashed
+      isAdmin,
       createdAt: new Date().toISOString()
     };
 
@@ -48,7 +71,7 @@ class UserService {
     return newUser;
   }
 
-  update(userId, { name, email }) {
+  update(userId, { name, email, password, isAdmin }) {
     const user = this.findById(userId);
 
     if (email && email !== user.email) {
@@ -65,6 +88,8 @@ class UserService {
 
     if (name) user.name = name;
     if (email) user.email = email;
+    if (password) user.password = password; // In production, this should be hashed
+    if (isAdmin !== undefined) user.isAdmin = isAdmin;
 
     return user;
   }

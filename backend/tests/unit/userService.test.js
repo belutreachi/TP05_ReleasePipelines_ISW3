@@ -4,7 +4,7 @@ describe('UserService', () => {
   describe('create', () => {
     it('crea un usuario con nombre y email', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Juan Pérez', email: 'juan@example.com' });
+      const user = service.create({ name: 'Juan Pérez', email: 'juan@example.com', password: 'pass123' });
 
       expect(user).toEqual(
         expect.objectContaining({
@@ -20,7 +20,7 @@ describe('UserService', () => {
     it('lanza error si el nombre no está presente', () => {
       const service = new UserService();
 
-      expect(() => service.create({ email: 'test@example.com' })).toThrow(
+      expect(() => service.create({ email: 'test@example.com', password: 'pass123' })).toThrow(
         'El nombre y email son obligatorios'
       );
     });
@@ -28,24 +28,32 @@ describe('UserService', () => {
     it('lanza error si el email no está presente', () => {
       const service = new UserService();
 
-      expect(() => service.create({ name: 'Test User' })).toThrow(
+      expect(() => service.create({ name: 'Test User', password: 'pass123' })).toThrow(
         'El nombre y email son obligatorios'
+      );
+    });
+
+    it('lanza error si la contraseña no está presente', () => {
+      const service = new UserService();
+
+      expect(() => service.create({ name: 'Test User', email: 'test@example.com' })).toThrow(
+        'La contraseña es obligatoria'
       );
     });
 
     it('lanza error si el email no tiene formato válido', () => {
       const service = new UserService();
 
-      expect(() => service.create({ name: 'Test User', email: 'invalid-email' })).toThrow(
+      expect(() => service.create({ name: 'Test User', email: 'invalid-email', password: 'pass123' })).toThrow(
         'El formato del email no es válido'
       );
     });
 
     it('lanza error si el email ya está registrado', () => {
       const service = new UserService();
-      service.create({ name: 'User 1', email: 'test@example.com' });
+      service.create({ name: 'User 1', email: 'test@example.com', password: 'pass123' });
 
-      expect(() => service.create({ name: 'User 2', email: 'test@example.com' })).toThrow(
+      expect(() => service.create({ name: 'User 2', email: 'test@example.com', password: 'pass456' })).toThrow(
         'El email ya está registrado'
       );
     });
@@ -60,8 +68,8 @@ describe('UserService', () => {
 
     it('devuelve todos los usuarios', () => {
       const service = new UserService();
-      service.create({ name: 'User 1', email: 'user1@example.com' });
-      service.create({ name: 'User 2', email: 'user2@example.com' });
+      service.create({ name: 'User 1', email: 'user1@example.com', password: 'pass123' });
+      service.create({ name: 'User 2', email: 'user2@example.com', password: 'pass456' });
 
       expect(service.list()).toHaveLength(2);
     });
@@ -70,7 +78,7 @@ describe('UserService', () => {
   describe('findById', () => {
     it('encuentra un usuario por ID', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Test User', email: 'test@example.com' });
+      const user = service.create({ name: 'Test User', email: 'test@example.com', password: 'pass123' });
 
       const found = service.findById(user.id);
 
@@ -87,7 +95,7 @@ describe('UserService', () => {
   describe('findByEmail', () => {
     it('encuentra un usuario por email', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Test User', email: 'test@example.com' });
+      const user = service.create({ name: 'Test User', email: 'test@example.com', password: 'pass123' });
 
       const found = service.findByEmail('test@example.com');
 
@@ -104,7 +112,7 @@ describe('UserService', () => {
   describe('update', () => {
     it('actualiza el nombre de un usuario', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Old Name', email: 'test@example.com' });
+      const user = service.create({ name: 'Old Name', email: 'test@example.com', password: 'pass123' });
 
       const updated = service.update(user.id, { name: 'New Name' });
 
@@ -114,7 +122,7 @@ describe('UserService', () => {
 
     it('actualiza el email de un usuario', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Test User', email: 'old@example.com' });
+      const user = service.create({ name: 'Test User', email: 'old@example.com', password: 'pass123' });
 
       const updated = service.update(user.id, { email: 'new@example.com' });
 
@@ -123,8 +131,8 @@ describe('UserService', () => {
 
     it('lanza error si el nuevo email ya está en uso', () => {
       const service = new UserService();
-      const user1 = service.create({ name: 'User 1', email: 'user1@example.com' });
-      service.create({ name: 'User 2', email: 'user2@example.com' });
+      const user1 = service.create({ name: 'User 1', email: 'user1@example.com', password: 'pass123' });
+      service.create({ name: 'User 2', email: 'user2@example.com', password: 'pass456' });
 
       expect(() => service.update(user1.id, { email: 'user2@example.com' })).toThrow(
         'El email ya está registrado'
@@ -143,7 +151,7 @@ describe('UserService', () => {
   describe('delete', () => {
     it('elimina un usuario por ID', () => {
       const service = new UserService();
-      const user = service.create({ name: 'Test User', email: 'test@example.com' });
+      const user = service.create({ name: 'Test User', email: 'test@example.com', password: 'pass123' });
 
       const deleted = service.delete(user.id);
 
@@ -155,6 +163,40 @@ describe('UserService', () => {
       const service = new UserService();
 
       expect(() => service.delete('non-existent-id')).toThrow('Usuario no encontrado');
+    });
+  });
+
+  describe('authenticate', () => {
+    it('autentica un usuario con credenciales correctas', () => {
+      const service = new UserService();
+      service.create({ name: 'Test User', email: 'test@example.com', password: 'pass123' });
+
+      const user = service.authenticate('test@example.com', 'pass123');
+
+      expect(user).toEqual(
+        expect.objectContaining({
+          name: 'Test User',
+          email: 'test@example.com'
+        })
+      );
+      expect(user.password).toBeUndefined();
+    });
+
+    it('lanza error si el email no existe', () => {
+      const service = new UserService();
+
+      expect(() => service.authenticate('nonexistent@example.com', 'pass123')).toThrow(
+        'Credenciales inválidas'
+      );
+    });
+
+    it('lanza error si la contraseña es incorrecta', () => {
+      const service = new UserService();
+      service.create({ name: 'Test User', email: 'test@example.com', password: 'pass123' });
+
+      expect(() => service.authenticate('test@example.com', 'wrongpass')).toThrow(
+        'Credenciales inválidas'
+      );
     });
   });
 });

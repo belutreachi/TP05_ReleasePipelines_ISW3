@@ -1,4 +1,4 @@
-export default function TaskList({ tasks, onToggle }) {
+export default function TaskList({ tasks, onToggle, isAdmin }) {
   if (!tasks.length) {
     return <p>No hay tareas. ¡Crea la primera!</p>;
   }
@@ -10,6 +10,9 @@ export default function TaskList({ tasks, onToggle }) {
           <div>
             <h3>{task.title}</h3>
             {task.description && <p>{task.description}</p>}
+            {isAdmin && task.userId && (
+              <small className="task-owner">Usuario: {task.userId}</small>
+            )}
             {task.completed && task.completedAt && (
               <small>Completada el {new Date(task.completedAt).toLocaleString()}</small>
             )}
