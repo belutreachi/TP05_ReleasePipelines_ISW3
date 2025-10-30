@@ -53,7 +53,7 @@ describe('App', () => {
 
     // Wait for the application to load
     await waitFor(() => {
-      expect(screen.getByText('Gestor de tareas')).toBeInTheDocument();
+      expect(screen.getByText('TicTask')).toBeInTheDocument();
     });
 
     expect(screen.getByText('Bienvenido, Test User')).toBeInTheDocument();

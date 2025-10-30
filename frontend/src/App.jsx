@@ -202,7 +202,7 @@ export default function App() {
   return (
     <div className="app-container">
       <header>
-        <h1>Gestor de tareas</h1>
+        <h1>TicTask</h1>
         <div className="user-info">
           <span>Bienvenido, {user?.name}</span>
           {user?.isAdmin && <span className="admin-badge">Admin</span>}
