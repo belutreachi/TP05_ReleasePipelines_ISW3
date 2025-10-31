@@ -61,7 +61,7 @@ Voy a Azure DevOps y creo un nuevo proyecto para este TP:
 ![alt text](image-13.png)
 ![alt text](image-14.png)
 
-Voy a Project Settings --> Service Connection --> Create service connection
+Voy a _Project Settings_ --> _Service Connection_ --> _Create service connection_
 ![alt text](image-15.png)
 
 Elijo:
@@ -72,5 +72,12 @@ Elijo:
 
 ![alt text](image-18.png)
 
+## 3. Creación de Pipeline YAML básico (solo CI)
+### 3.1. Crear archivo azure-pipelines.yml
+En la raíz del repositorio creo el archivo `azure-pipelines.yml` con un Pipeline YAML básico.
+
+### 3.2. Crear el pipeline en Azure DevOps
+Voy a _Pipelines_ --> _Create Pipeline_ --> _GitHub_ 
+Selecciono el repositorio en GitHub donde tengo la aplicación que voy a usar para este TP: TP05_ReleasePipelines_ISW3. Automáticamente detecta el archivo `azure-pipelines.yml` y hago click en _RUN_.
 
 

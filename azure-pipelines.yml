@@ -29,15 +29,6 @@ stages:
         versionSpec: '$(nodeVersion)'
 
     # --- FRONTEND ---
-    # Cache de npm del front (acelera builds)
-    - task: Cache@2
-      displayName: 'Cache npm (frontend)'
-      inputs:
-        key: 'npm | "$(Agent.OS)" | frontend/package-lock.json'
-        path: '$(Pipeline.Workspace)/npm_front_cache'
-        restoreKeys: |
-          npm | "$(Agent.OS)"
-
     - script: |
         cd frontend
         npm ci
@@ -56,15 +47,6 @@ stages:
         replaceExistingArchive: true
 
     # --- BACKEND ---
-    # Cache de npm del back
-    - task: Cache@2
-      displayName: 'Cache npm (backend)'
-      inputs:
-        key: 'npm | "$(Agent.OS)" | backend/package-lock.json'
-        path: '$(Pipeline.Workspace)/npm_back_cache'
-        restoreKeys: |
-          npm | "$(Agent.OS)"
-
     - script: |
         set -e
         cd backend
