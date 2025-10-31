@@ -15,7 +15,8 @@ variables:
   artifactNameBackend: 'backend'
   # CD
   azureServiceConnection: 'azure-tp05-connection'   # <— Service Connection
-  webAppQa: 'webapp-tp05-qa-treachi'                # <— Web App QA (ajustá si hace falta)
+  webAppQa: 'webapp-tp05-qa-treachi'                # <— Web App QA
+  webAppQaHost: 'webapp-tp05-qa-treachi-f4etatd8fmaydhex.eastus2-01.azurewebsites.net'  # <— Host Web App QA
 
 stages:
 # =======================
@@ -126,7 +127,7 @@ stages:
           # Health check básico
           - script: |
               set -e
-              BASE="https://$(webAppQa).azurewebsites.net"
+              BASE="https://$(webAppQaHost)"
               echo "GET $BASE/health ..."
               if curl -fsS "$BASE/health" >/dev/null 2>&1; then
                 echo "OK /health"
