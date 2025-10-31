@@ -104,6 +104,17 @@ stages:
       runOnce:
         deploy:
           steps:
+          - checkout: none
+
+          # Descarga artefacto backend del build actual
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download backend artifact'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactNameBackend)'
+              downloadPath: '$(Pipeline.Workspace)/artifacts'
+
           # Despliegue del backend.zip al App Service QA
           - task: AzureWebApp@1
             displayName: 'Deploy backend.zip to QA Web App'
