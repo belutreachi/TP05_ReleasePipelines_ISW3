@@ -112,3 +112,5 @@ git push
 ```
 
 ### 6.2 Verifico el Deployment
+Corro el pipeline y verifico que todo corrió correctamente:
+![alt text](image-26.png)
