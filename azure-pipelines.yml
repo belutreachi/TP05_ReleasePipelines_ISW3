@@ -121,7 +121,7 @@ stages:
               azureSubscription: '$(azureServiceConnection)'
               appType: 'webApp'
               appName: '$(webAppQa)'
-              package: '$(Pipeline.Workspace)/artifacts/backend.zip'
+              package: '$(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip'
 
           # Health check básico
           - script: |
