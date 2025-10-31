@@ -1,0 +1,105 @@
+# CI para TP05 (Node.js: frontend + backend)
+# Genera artefactos para Release (frontend.zip y backend.zip)
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '20.x'          # Usa 20 LTS estable
+  artifactNameFrontend: 'frontend'
+  artifactNameBackend: 'backend'
+
+stages:
+- stage: Build
+  displayName: 'Build & Package'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build front + package back'
+    steps:
+
+    # --- Node.js tool ---
+    - task: NodeTool@0
+      displayName: 'Use Node $(nodeVersion)'
+      inputs:
+        versionSpec: '$(nodeVersion)'
+
+    # --- FRONTEND ---
+    # Cache de npm del front (acelera builds)
+    - task: Cache@2
+      displayName: 'Cache npm (frontend)'
+      inputs:
+        key: 'npm | "$(Agent.OS)" | frontend/package-lock.json'
+        path: '$(Pipeline.Workspace)/npm_front_cache'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+
+    - script: |
+        cd frontend
+        npm ci
+        # Compila (Vite/React/Angular). Si no existe 'build', falla y ves el error.
+        npm run build
+      displayName: 'Install & Build Frontend'
+
+    # Empaqueta solo el build estático del front
+    - task: ArchiveFiles@2
+      displayName: 'Archive frontend dist'
+      inputs:
+        rootFolderOrFile: 'frontend/dist'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        replaceExistingArchive: true
+
+    # --- BACKEND ---
+    # Cache de npm del back
+    - task: Cache@2
+      displayName: 'Cache npm (backend)'
+      inputs:
+        key: 'npm | "$(Agent.OS)" | backend/package-lock.json'
+        path: '$(Pipeline.Workspace)/npm_back_cache'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+
+    - script: |
+        set -e
+        cd backend
+        npm ci
+        # Si existe script de build (TypeScript, etc.), correrlo de forma segura:
+        if npm run | grep -qE '^\s*build'; then
+          npm run build
+        fi
+        cd ..
+        # Preparamos carpeta temporal con lo necesario para ejecutar en App Service:
+        rm -rf out_backend && mkdir -p out_backend
+        # Copia código fuente y/o carpeta dist si existiera, más package*.json y configs
+        rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
+      displayName: 'Install backend deps & prepare package (no node_modules)'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive backend'
+      inputs:
+        rootFolderOrFile: 'out_backend'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
+        replaceExistingArchive: true
+
+    # --- Publicar artefactos para Release ---
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish frontend artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+        ArtifactName: '$(artifactNameFrontend)'
+        publishLocation: 'Container'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish backend artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend.zip'
+        ArtifactName: '$(artifactNameBackend)'
+        publishLocation: 'Container'
