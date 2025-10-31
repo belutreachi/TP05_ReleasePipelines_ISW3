@@ -1,5 +1,4 @@
-# CI para TP05 (Node.js: frontend + backend)
-# Genera artefactos para Release (frontend.zip y backend.zip)
+# CI/CD para TP05 (Node.js: frontend + backend) + Deploy a QA
 
 trigger:
   branches:
@@ -10,17 +9,25 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  nodeVersion: '20.x'          # Usa 20 LTS estable
+  # CI
+  nodeVersion: '20.x'
   artifactNameFrontend: 'frontend'
   artifactNameBackend: 'backend'
+  # CD
+  azureServiceConnection: 'azure-tp05-connection'   # <— Service Connection
+  webAppQa: 'webapp-tp05-qa-treachi'                # <— Web App QA (ajustá si hace falta)
 
 stages:
+# =======================
+# CI: Build & Package
+# =======================
 - stage: Build
   displayName: 'Build & Package'
   jobs:
   - job: BuildJob
     displayName: 'Build front + package back'
     steps:
+    - checkout: self
 
     # --- Node.js tool ---
     - task: NodeTool@0
@@ -32,11 +39,9 @@ stages:
     - script: |
         cd frontend
         npm ci
-        # Compila (Vite/React/Angular). Si no existe 'build', falla y ves el error.
         npm run build
       displayName: 'Install & Build Frontend'
 
-    # Empaqueta solo el build estático del front
     - task: ArchiveFiles@2
       displayName: 'Archive frontend dist'
       inputs:
@@ -51,14 +56,11 @@ stages:
         set -e
         cd backend
         npm ci
-        # Si existe script de build (TypeScript, etc.), correrlo de forma segura:
         if npm run | grep -qE '^\s*build'; then
           npm run build
         fi
         cd ..
-        # Preparamos carpeta temporal con lo necesario para ejecutar en App Service:
         rm -rf out_backend && mkdir -p out_backend
-        # Copia código fuente y/o carpeta dist si existiera, más package*.json y configs
         rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
       displayName: 'Install backend deps & prepare package (no node_modules)'
 
@@ -71,7 +73,7 @@ stages:
         archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
         replaceExistingArchive: true
 
-    # --- Publicar artefactos para Release ---
+    # Publicar artefactos (front/back) para CD
     - task: PublishBuildArtifacts@1
       displayName: 'Publish frontend artifact'
       inputs:
@@ -85,3 +87,51 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend.zip'
         ArtifactName: '$(artifactNameBackend)'
         publishLocation: 'Container'
+
+# =======================
+# CD: Deploy a QA
+# =======================
+- stage: Deploy_QA
+  displayName: 'Deploy to QA'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployBackendQA
+    displayName: 'Deploy Backend (QA)'
+    environment: 'QA'   # Debe existir el Environment QA en DevOps
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: none
+
+          # Descarga artefacto backend del build actual
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download backend artifact'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactNameBackend)'
+              downloadPath: '$(Pipeline.Workspace)/artifacts'
+
+          # Despliegue del backend.zip al App Service QA
+          - task: AzureWebApp@1
+            displayName: 'Deploy backend.zip to QA Web App'
+            inputs:
+              azureSubscription: '$(azureServiceConnection)'
+              appType: 'webApp'
+              appName: '$(webAppQa)'
+              package: '$(Pipeline.Workspace)/artifacts/backend.zip'
+
+          # Health check básico
+          - script: |
+              set -e
+              BASE="https://$(webAppQa).azurewebsites.net"
+              echo "GET $BASE/health ..."
+              if curl -fsS "$BASE/health" >/dev/null 2>&1; then
+                echo "OK /health"
+                exit 0
+              fi
+              echo "GET $BASE/api/health ..."
+              curl -fsS "$BASE/api/health"
+            displayName: 'Health check QA'

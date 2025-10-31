@@ -80,4 +80,35 @@ En la raíz del repositorio creo el archivo `azure-pipelines.yml` con un Pipelin
 Voy a _Pipelines_ --> _Create Pipeline_ --> _GitHub_ 
 Selecciono el repositorio en GitHub donde tengo la aplicación que voy a usar para este TP: TP05_ReleasePipelines_ISW3. Automáticamente detecta el archivo `azure-pipelines.yml` y hago click en _RUN_.
 
+## 4. Verificación del build inicial
+### 4.1. Verificar ejecución del pipeline
+Podemos ver que el pipeline se ejecutó exitosamente:
+![alt text](image-19.png)
+Los artifacts se publicaron correctamente:
+![alt text](image-20.png)
 
+## 5. Extensión del pipeline para incluir deploy a QA
+### 5.1. Crear Environments en Azure DevOps
+Voy a _Pipelines_ --> _Environments_ --> _Create environment_
+Creo los environments para QA y PROD
+![alt text](image-21.png)
+![alt text](image-22.png)
+En el de PROD agrego aprobación manual
+![alt text](image-23.png)
+Me agrego como aprobadora:
+![alt text](image-24.png)
+![alt text](image-25.png)
+
+### 5.2 Actualizar azure-pipelines.yml para incluir CD
+Modifico el `azure-pipelines.yml` con un nuevo stage para el Deploy a QA. 
+
+## 6. Prueba de Deployment a QA
+### 6.1 Hago commit y push
+Hago commit y push de los cambios:
+```bash
+git add .
+git commit -m "agrego stage de Deploy a QA"
+git push
+```
+
+### 6.2 Verifico el Deployment
