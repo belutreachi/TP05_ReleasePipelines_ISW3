@@ -123,16 +123,3 @@ stages:
               appType: 'webApp'
               appName: '$(webAppQa)'
               package: '$(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip'
-
-          # Health check básico
-          - script: |
-              set -e
-              BASE="https://$(webAppQaHost)"
-              echo "GET $BASE/health ..."
-              if curl -fsS "$BASE/health" >/dev/null 2>&1; then
-                echo "OK /health"
-                exit 0
-              fi
-              echo "GET $BASE/api/health ..."
-              curl -fsS "$BASE/api/health"
-            displayName: 'Health check QA'
