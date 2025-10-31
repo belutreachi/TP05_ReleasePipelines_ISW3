@@ -63,7 +63,9 @@ stages:
         cd ..
         rm -rf out_backend && mkdir -p out_backend
         rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
-      displayName: 'Install backend deps & prepare package (no node_modules)'
+        cd out_backend
+        npm ci --production
+      displayName: 'Install backend deps & prepare package'
 
     - task: ArchiveFiles@2
       displayName: 'Archive backend'
