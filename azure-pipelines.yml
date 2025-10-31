@@ -63,9 +63,7 @@ stages:
         cd ..
         rm -rf out_backend && mkdir -p out_backend
         rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
-        cd out_backend
-        npm ci --production
-      displayName: 'Install backend deps & prepare package'
+      displayName: 'Install backend deps & prepare package (no node_modules)'
 
     - task: ArchiveFiles@2
       displayName: 'Archive backend'
@@ -108,7 +106,15 @@ stages:
           steps:
           - checkout: none
 
-          # Descarga artefacto backend del build actual
+          # Descargar AMBOS artefactos
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download frontend artifact'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactNameFrontend)'
+              downloadPath: '$(Pipeline.Workspace)/artifacts'
+
           - task: DownloadBuildArtifacts@0
             displayName: 'Download backend artifact'
             inputs:
@@ -117,11 +123,29 @@ stages:
               artifactName: '$(artifactNameBackend)'
               downloadPath: '$(Pipeline.Workspace)/artifacts'
 
-          # Despliegue del backend.zip al App Service QA
+          # Combinar frontend y backend
+          - script: |
+              set -e
+              # Crear directorio temporal
+              mkdir -p $(Pipeline.Workspace)/combined
+              
+              # Descomprimir backend
+              unzip -q $(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip -d $(Pipeline.Workspace)/combined
+              
+              # Crear carpeta public y copiar frontend
+              mkdir -p $(Pipeline.Workspace)/combined/public
+              unzip -q $(Pipeline.Workspace)/artifacts/$(artifactNameFrontend)/frontend.zip -d $(Pipeline.Workspace)/combined/public
+              
+              # Reempaquetar todo junto
+              cd $(Pipeline.Workspace)/combined
+              zip -r $(Pipeline.Workspace)/webapp-combined.zip .
+            displayName: 'Combine frontend + backend'
+
+          # Desplegar el paquete combinado
           - task: AzureWebApp@1
-            displayName: 'Deploy backend.zip to QA Web App'
+            displayName: 'Deploy combined webapp to QA'
             inputs:
               azureSubscription: '$(azureServiceConnection)'
               appType: 'webApp'
               appName: '$(webAppQa)'
-              package: '$(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip'
+              package: '$(Pipeline.Workspace)/webapp-combined.zip'
