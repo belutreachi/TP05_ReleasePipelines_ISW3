@@ -98,7 +98,7 @@ stages:
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
   - deployment: DeployBackendQA
-    displayName: 'Deploy Backend (QA)'
+    displayName: 'Deploy Backend + Frontend (QA)'
     environment: 'QA'   # Debe existir el Environment QA en DevOps
     strategy:
       runOnce:
@@ -106,7 +106,7 @@ stages:
           steps:
           - checkout: none
 
-          # Descarga artefacto backend del build actual
+          # ---- Descargar artefactos del build actual ----
           - task: DownloadBuildArtifacts@0
             displayName: 'Download backend artifact'
             inputs:
@@ -115,11 +115,43 @@ stages:
               artifactName: '$(artifactNameBackend)'
               downloadPath: '$(Pipeline.Workspace)/artifacts'
 
-          # Despliegue del backend.zip al App Service QA
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download frontend artifact'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(artifactNameFrontend)'
+              downloadPath: '$(Pipeline.Workspace)/artifacts'
+
+          # ---- Extraer ZIPs a carpetas temporales ----
+          - task: ExtractFiles@1
+            displayName: 'Unzip backend.zip'
+            inputs:
+              archiveFilePatterns: '$(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip'
+              destinationFolder: '$(Pipeline.Workspace)/qa_backend'
+              cleanDestinationFolder: true
+
+          - task: ExtractFiles@1
+            displayName: 'Unzip frontend.zip'
+            inputs:
+              archiveFilePatterns: '$(Pipeline.Workspace)/artifacts/$(artifactNameFrontend)/frontend.zip'
+              destinationFolder: '$(Pipeline.Workspace)/qa_frontend'
+              cleanDestinationFolder: true
+
+          # ---- Combinar en un solo paquete para la misma Web App ----
+          # Resultado: $(Pipeline.Workspace)/deploy_qa tiene backend + dist del frontend en la raíz
+          - script: |
+              set -e
+              mkdir -p "$(Pipeline.Workspace)/deploy_qa"
+              cp -a "$(Pipeline.Workspace)/qa_backend/."  "$(Pipeline.Workspace)/deploy_qa/"
+              cp -a "$(Pipeline.Workspace)/qa_frontend/." "$(Pipeline.Workspace)/deploy_qa/"
+            displayName: 'Merge backend + frontend into single package'
+
+          # ---- Desplegar carpeta combinada a la Web App de QA ----
           - task: AzureWebApp@1
-            displayName: 'Deploy backend.zip to QA Web App'
+            displayName: 'Deploy merged package to QA Web App'
             inputs:
               azureSubscription: '$(azureServiceConnection)'
               appType: 'webApp'
               appName: '$(webAppQa)'
-              package: '$(Pipeline.Workspace)/artifacts/$(artifactNameBackend)/backend.zip'
+              package: '$(Pipeline.Workspace)/deploy_qa'
