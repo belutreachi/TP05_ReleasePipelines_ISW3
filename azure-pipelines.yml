@@ -62,7 +62,7 @@ stages:
         fi
         cd ..
         rm -rf out_backend && mkdir -p out_backend
-        rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
+        rsync -av --exclude tests --exclude coverage backend/ out_backend/
       displayName: 'Install backend deps & prepare package (no node_modules)'
 
     - task: ArchiveFiles@2
@@ -143,11 +143,15 @@ stages:
           - script: |
               set -e
               mkdir -p "$(Pipeline.Workspace)/deploy_qa"
+              ls -la "$(Pipeline.Workspace)/qa_backend" || true
+              ls -la "$(Pipeline.Workspace)/qa_frontend" || true
+
               cp -a "$(Pipeline.Workspace)/qa_backend/."  "$(Pipeline.Workspace)/deploy_qa/"
               cp -a "$(Pipeline.Workspace)/qa_frontend/." "$(Pipeline.Workspace)/deploy_qa/"
-              cp backend/web.config "$(Pipeline.Workspace)/deploy_qa/web.config"
-            displayName: 'Merge backend + frontend into single package (and include web.config)'
 
+              echo "Contenido final a publicar:"
+              ls -la "$(Pipeline.Workspace)/deploy_qa" || true
+            displayName: 'Merge backend + frontend into single package'
 
           # ---- Desplegar carpeta combinada a la Web App de QA ----
           - task: AzureWebApp@1
