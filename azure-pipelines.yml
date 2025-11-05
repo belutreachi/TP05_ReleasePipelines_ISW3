@@ -121,6 +121,12 @@ stages:
           steps:
           - checkout: none
 
+          # Node para esta stage (para poder correr npm ci en el backend)
+          - task: NodeTool@0
+            displayName: 'Use Node $(nodeVersion) (Deploy)'
+            inputs:
+              versionSpec: '$(nodeVersion)'
+
           # ---- Descargar artefactos del build actual ----
           - task: DownloadBuildArtifacts@0
             displayName: 'Download backend artifact'
@@ -153,6 +159,17 @@ stages:
               destinationFolder: '$(Pipeline.Workspace)/qa_frontend'
               cleanDestinationFolder: true
 
+          # ---- INSTALAR DEPENDENCIAS DEL BACKEND EN LA CARPETA DE DEPLOY ----
+          - script: |
+              set -e
+              cd "$(Pipeline.Workspace)/qa_backend"
+              node -v
+              npm -v
+              npm ci --omit=dev
+              echo "node_modules instalados en qa_backend:"
+              ls -la node_modules | head -n 20 || true
+            displayName: 'Install backend deps in deploy folder (npm ci --omit=dev)'
+
           # ---- Merge front + back en carpeta final + checks ----
           - script: |
               set -e
@@ -176,10 +193,10 @@ stages:
               if [ -f "$(Pipeline.Workspace)/qa_backend/web.config" ]; then
                 cp -f "$(Pipeline.Workspace)/qa_backend/web.config" "$(Pipeline.Workspace)/deploy_qa/web.config"
               else
-                # Copia desde el repo (ruta relativa al workspace del agente al ejecutar)
                 cp -f $(System.DefaultWorkingDirectory)/backend/web.config "$(Pipeline.Workspace)/deploy_qa/web.config" || true
               fi
-              [ -f "$(Pipeline.Workspace)/qa_backend/iisnode.yml" ] && cp -f "$(Pipeline.Workspace)/deploy_qa/iisnode.yml" "$(Pipeline.Workspace)/deploy_qa/iisnode.yml" || true
+              # (fix de ruta origen)
+              [ -f "$(Pipeline.Workspace)/qa_backend/iisnode.yml" ] && cp -f "$(Pipeline.Workspace)/qa_backend/iisnode.yml" "$(Pipeline.Workspace)/deploy_qa/iisnode.yml" || true
 
               echo "Contenido final (deploy_qa):"
               ls -la "$(Pipeline.Workspace)/deploy_qa" || true
@@ -188,6 +205,7 @@ stages:
               test -f "$(Pipeline.Workspace)/deploy_qa/web.config" || (echo "ERROR: falta web.config" && exit 1)
               test -f "$(Pipeline.Workspace)/deploy_qa/src/server.js" || (echo "ERROR: falta src/server.js" && exit 1)
               test -f "$(Pipeline.Workspace)/deploy_qa/index.html" || (echo "ERROR: falta index.html (frontend)" && exit 1)
+              test -d "$(Pipeline.Workspace)/deploy_qa/node_modules" || (echo "ERROR: falta node_modules en deploy_qa (no se instalaron deps del backend)." && exit 1)
             displayName: 'Merge + checks + web.config'
 
           # ---- Crear ZIP final para deploy ----
