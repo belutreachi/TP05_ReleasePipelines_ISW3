@@ -10,7 +10,7 @@ pool:
 
 variables:
   # CI
-  nodeVersion: '20.x'
+  nodeVersion: '16.x'
   artifactNameFrontend: 'frontend'
   artifactNameBackend: 'backend'
   # CD
