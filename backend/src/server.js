@@ -4,8 +4,13 @@ const config = require('./config/env');
 
 const server = http.createServer(app);
 
-server.listen(config.port, () => {
-  console.log(`API escuchando en http://localhost:${config.port} en modo ${config.nodeEnv}`);
+
+const PORT = process.env.PORT || config.port || 3000;
+
+console.log("Usando puerto:", PORT);
+
+server.listen(PORT, () => {
+  console.log(`API escuchando en http://localhost:${PORT} en modo ${config.nodeEnv}`);
 });
 
 module.exports = server;

@@ -14,9 +14,9 @@ variables:
   artifactNameFrontend: 'frontend'
   artifactNameBackend: 'backend'
   # CD
-  azureServiceConnection: 'azure-tp05-connection'   # <— Service Connection
-  webAppQa: 'webapp-tp05-qa-treachi'                # <— Web App QA
-  webAppQaHost: 'webapp-tp05-qa-treachi-f4etatd8fmaydhex.eastus2-01.azurewebsites.net'  # <— Host Web App QA
+  azureServiceConnection: 'azure-tp05-connection'
+  webAppQa: 'webapp-tp05-qa-treachi'
+  webAppQaHost: 'webapp-tp05-qa-treachi-f4etatd8fmaydhex.eastus2-01.azurewebsites.net'
 
 stages:
 # =======================
@@ -38,10 +38,14 @@ stages:
 
     # --- FRONTEND ---
     - script: |
+        set -e
         cd frontend
         npm ci
         npm run build
-      displayName: 'Install & Build Frontend'
+        echo "Contenido de frontend/dist:"
+        ls -la dist || true
+        test -f dist/index.html || (echo "ERROR: No existe dist/index.html. Falló el build de Vite." && exit 1)
+      displayName: 'Install & Build Frontend (con verificación)'
 
     - task: ArchiveFiles@2
       displayName: 'Archive frontend dist'
@@ -57,12 +61,23 @@ stages:
         set -e
         cd backend
         npm ci
+        # Si existe un script build, ejecutarlo
         if npm run | grep -qE '^\s*build'; then
           npm run build
         fi
         cd ..
+        # Preparar carpeta limpia sin node_modules/tests/coverage
         rm -rf out_backend && mkdir -p out_backend
-        rsync -av --exclude tests --exclude coverage backend/ out_backend/
+        rsync -av \
+          --exclude node_modules \
+          --exclude tests \
+          --exclude coverage \
+          backend/ out_backend/
+        echo "Contenido de out_backend:"
+        ls -la out_backend || true
+        # Checks mínimos
+        test -f out_backend/web.config || (echo "ADVERTENCIA: no se encontró backend/web.config (se copiará luego igualmente)")
+        test -f out_backend/src/server.js || (echo "ERROR: falta backend/src/server.js" && exit 1)
       displayName: 'Install backend deps & prepare package (no node_modules)'
 
     - task: ArchiveFiles@2
@@ -99,7 +114,7 @@ stages:
   jobs:
   - deployment: DeployBackendQA
     displayName: 'Deploy Backend + Frontend (QA)'
-    environment: 'QA'   # Debe existir el Environment QA en DevOps
+    environment: 'QA'
     strategy:
       runOnce:
         deploy:
@@ -138,26 +153,58 @@ stages:
               destinationFolder: '$(Pipeline.Workspace)/qa_frontend'
               cleanDestinationFolder: true
 
-          # ---- Combinar en un solo paquete para la misma Web App ----
-          # Resultado: $(Pipeline.Workspace)/deploy_qa tiene backend + dist del frontend en la raíz
+          # ---- Merge front + back en carpeta final + checks ----
           - script: |
               set -e
               mkdir -p "$(Pipeline.Workspace)/deploy_qa"
+
+              echo "Contenido de qa_backend:"
               ls -la "$(Pipeline.Workspace)/qa_backend" || true
+              echo "Contenido de qa_frontend:"
               ls -la "$(Pipeline.Workspace)/qa_frontend" || true
 
+              # Debe existir index.html del front
+              test -f "$(Pipeline.Workspace)/qa_frontend/index.html" || (echo "ERROR: falta index.html en qa_frontend (el ZIP del front está incompleto)." && exit 1)
+              # Debe existir server.js del back
+              test -f "$(Pipeline.Workspace)/qa_backend/src/server.js" || (echo "ERROR: falta src/server.js en qa_backend." && exit 1)
+
+              # Merge a carpeta final
               cp -a "$(Pipeline.Workspace)/qa_backend/."  "$(Pipeline.Workspace)/deploy_qa/"
               cp -a "$(Pipeline.Workspace)/qa_frontend/." "$(Pipeline.Workspace)/deploy_qa/"
 
-              echo "Contenido final a publicar:"
-              ls -la "$(Pipeline.Workspace)/deploy_qa" || true
-            displayName: 'Merge backend + frontend into single package'
+              # Forzar archivos clave en raíz publicada
+              if [ -f "$(Pipeline.Workspace)/qa_backend/web.config" ]; then
+                cp -f "$(Pipeline.Workspace)/qa_backend/web.config" "$(Pipeline.Workspace)/deploy_qa/web.config"
+              else
+                # Copia desde el repo (ruta relativa al workspace del agente al ejecutar)
+                cp -f $(System.DefaultWorkingDirectory)/backend/web.config "$(Pipeline.Workspace)/deploy_qa/web.config" || true
+              fi
+              [ -f "$(Pipeline.Workspace)/qa_backend/iisnode.yml" ] && cp -f "$(Pipeline.Workspace)/deploy_qa/iisnode.yml" "$(Pipeline.Workspace)/deploy_qa/iisnode.yml" || true
 
-          # ---- Desplegar carpeta combinada a la Web App de QA ----
+              echo "Contenido final (deploy_qa):"
+              ls -la "$(Pipeline.Workspace)/deploy_qa" || true
+
+              # Checks finales
+              test -f "$(Pipeline.Workspace)/deploy_qa/web.config" || (echo "ERROR: falta web.config" && exit 1)
+              test -f "$(Pipeline.Workspace)/deploy_qa/src/server.js" || (echo "ERROR: falta src/server.js" && exit 1)
+              test -f "$(Pipeline.Workspace)/deploy_qa/index.html" || (echo "ERROR: falta index.html (frontend)" && exit 1)
+            displayName: 'Merge + checks + web.config'
+
+          # ---- Crear ZIP final para deploy ----
+          - task: ArchiveFiles@2
+            displayName: 'Zip final deploy_qa'
+            inputs:
+              rootFolderOrFile: '$(Pipeline.Workspace)/deploy_qa'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Pipeline.Workspace)/deploy_qa.zip'
+              replaceExistingArchive: true
+
+          # ---- Desplegar el ZIP final a la Web App de QA ----
           - task: AzureWebApp@1
-            displayName: 'Deploy merged package to QA Web App'
+            displayName: 'Deploy merged ZIP to QA Web App'
             inputs:
               azureSubscription: '$(azureServiceConnection)'
               appType: 'webApp'
               appName: '$(webAppQa)'
-              package: '$(Pipeline.Workspace)/deploy_qa'
+              package: '$(Pipeline.Workspace)/deploy_qa.zip'
