@@ -10,7 +10,8 @@ pool:
 
 variables:
   # CI
-  nodeVersion: '16.x'
+  nodeVersionFrontend: '20.x'   # para Vite
+  nodeVersionBackend:  '16.x' 
   artifactNameFrontend: 'frontend'
   artifactNameBackend: 'backend'
   # CD
@@ -30,22 +31,20 @@ stages:
     steps:
     - checkout: self
 
-    # --- Node.js tool ---
+    # --- FRONTEND (Node 20) ---
     - task: NodeTool@0
-      displayName: 'Use Node $(nodeVersion)'
+      displayName: 'Use Node $(nodeVersionFrontend) (frontend)'
       inputs:
-        versionSpec: '$(nodeVersion)'
+        versionSpec: '$(nodeVersionFrontend)'
 
-    # --- FRONTEND ---
     - script: |
         set -e
         cd frontend
         npm ci
         npm run build
-        echo "Contenido de frontend/dist:"
         ls -la dist || true
-        test -f dist/index.html || (echo "ERROR: No existe dist/index.html. Falló el build de Vite." && exit 1)
-      displayName: 'Install & Build Frontend (con verificación)'
+        test -f dist/index.html
+      displayName: 'Install & Build Frontend (Node 20)'
 
     - task: ArchiveFiles@2
       displayName: 'Archive frontend dist'
@@ -56,29 +55,23 @@ stages:
         archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
         replaceExistingArchive: true
 
-    # --- BACKEND ---
+    # --- BACKEND (Node 16) ---
+    - task: NodeTool@0
+      displayName: 'Use Node $(nodeVersionBackend) (backend)'
+      inputs:
+        versionSpec: '$(nodeVersionBackend)'
+
     - script: |
         set -e
         cd backend
         npm ci
-        # Si existe un script build, ejecutarlo
-        if npm run | grep -qE '^\s*build'; then
-          npm run build
-        fi
+        if npm run | grep -qE '^\s*build'; then npm run build; fi
         cd ..
-        # Preparar carpeta limpia sin node_modules/tests/coverage
         rm -rf out_backend && mkdir -p out_backend
-        rsync -av \
-          --exclude node_modules \
-          --exclude tests \
-          --exclude coverage \
-          backend/ out_backend/
-        echo "Contenido de out_backend:"
-        ls -la out_backend || true
-        # Checks mínimos
-        test -f out_backend/web.config || (echo "ADVERTENCIA: no se encontró backend/web.config (se copiará luego igualmente)")
-        test -f out_backend/src/server.js || (echo "ERROR: falta backend/src/server.js" && exit 1)
-      displayName: 'Install backend deps & prepare package (no node_modules)'
+        rsync -av --exclude node_modules --exclude tests --exclude coverage backend/ out_backend/
+        ls -la out_backend
+        test -f out_backend/src/server.js
+      displayName: 'Install backend deps & prepare package'
 
     - task: ArchiveFiles@2
       displayName: 'Archive backend'
@@ -89,19 +82,16 @@ stages:
         archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
         replaceExistingArchive: true
 
-    # Publicar artefactos (front/back) para CD
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish frontend artifact'
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/frontend.zip'
-        ArtifactName: '$(artifactNameFrontend)'
+        ArtifactName: 'frontend'
         publishLocation: 'Container'
 
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish backend artifact'
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend.zip'
-        ArtifactName: '$(artifactNameBackend)'
+        ArtifactName: 'backend'
         publishLocation: 'Container'
 
 # =======================
@@ -159,6 +149,11 @@ stages:
               destinationFolder: '$(Pipeline.Workspace)/qa_frontend'
               cleanDestinationFolder: true
 
+          - task: NodeTool@0
+            displayName: 'Use Node $(nodeVersionBackend) (deploy backend)'
+            inputs:
+              versionSpec: '$(nodeVersionBackend)'
+              
           # ---- INSTALAR DEPENDENCIAS DEL BACKEND EN LA CARPETA DE DEPLOY ----
           - script: |
               set -e
