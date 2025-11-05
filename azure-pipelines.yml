@@ -113,9 +113,9 @@ stages:
 
           # Node para esta stage (para poder correr npm ci en el backend)
           - task: NodeTool@0
-            displayName: 'Use Node $(nodeVersion) (Deploy)'
+            displayName: 'Use Node $(nodeVersionBackend) (deploy backend)'
             inputs:
-              versionSpec: '$(nodeVersion)'
+              versionSpec: '$(nodeVersionBackend)'
 
           # ---- Descargar artefactos del build actual ----
           - task: DownloadBuildArtifacts@0
@@ -149,11 +149,6 @@ stages:
               destinationFolder: '$(Pipeline.Workspace)/qa_frontend'
               cleanDestinationFolder: true
 
-          - task: NodeTool@0
-            displayName: 'Use Node $(nodeVersionBackend) (deploy backend)'
-            inputs:
-              versionSpec: '$(nodeVersionBackend)'
-              
           # ---- INSTALAR DEPENDENCIAS DEL BACKEND EN LA CARPETA DE DEPLOY ----
           - script: |
               set -e
